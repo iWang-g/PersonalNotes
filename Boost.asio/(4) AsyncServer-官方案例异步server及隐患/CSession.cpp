@@ -33,15 +33,14 @@ void CSession::Start()
 
 void CSession::Send(char* msg, int length)
 {
-	// pending为true表示发送队列里有数据，也就是上一次的数据未发完
-	// pending为false表示上一次的数据发完了，发送缓冲区是空的
-	bool pending = false;
 	std::lock_guard<std::mutex> lock(_send_lock);
-	if (_send_que.size() > 0) {
-		pending = true;
+	int send_que_size = _send_que.size();
+	if (send_que_size > MAX_SENDQUE) {
+		cout << "session: " << _uuid << " send que fulled, size is " << MAX_SENDQUE << endl;
+		return;
 	}
 	_send_que.push(make_shared<MsgNode>(msg, length));
-	if (pending) {
+	if (send_que_size > 0) {
 		return;
 	}
 
@@ -86,6 +85,8 @@ void CSession::HandleRead(const boost::system::error_code& error, size_t  bytes_
 				//获取头部数据
 				short data_len = 0;
 				memcpy(&data_len, _recv_head_node->_data, HEAD_LENGTH);
+				// 网络字节序转为本地字节序
+				data_len = boost::asio::detail::socket_ops::network_to_host_short(data_len);
 				cout << "data_len is " << data_len << endl;
 				//头部长度非法
 				if (data_len > MAX_LENGTH) {

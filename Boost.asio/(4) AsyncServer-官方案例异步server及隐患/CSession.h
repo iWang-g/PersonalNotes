@@ -4,8 +4,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <queue>
 #include <memory>
-#define MAX_LENGTH 1024*2
-#define HEAD_LENGTH 2
+#include "const.h"
 using boost::asio::ip::tcp;
 using namespace std;
 
@@ -16,7 +15,9 @@ class MsgNode {
 public:
 	MsgNode(char* msg, short max_len) : _total_len(max_len + HEAD_LENGTH), _cur_len(0) {
 		_data = new char[_total_len + 1]();
-		memcpy(_data, &max_len, HEAD_LENGTH);
+		// ×ªÎªÍøÂç×Ö½ÚÐò
+		int max_len_host = boost::asio::detail::socket_ops::host_to_network_short(max_len);
+		memcpy(_data, &max_len_host, HEAD_LENGTH);
 		memcpy(_data + HEAD_LENGTH, msg, max_len);
 		_data[_total_len] = '\0';
 	}
